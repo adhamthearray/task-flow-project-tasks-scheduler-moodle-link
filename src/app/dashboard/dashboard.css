@@ -482,5 +482,79 @@ body {
   font-size: 13px;
   margin-bottom: 12px;
 }
+.modal.wide {
+  width: 520px;
+  max-width: 90%;
+}
+
+.dependency-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dependency-text {
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.dependency-info {
+  margin-top: 20px;
+}
+
+.dependency-list {
+  padding-left: 18px;
+}
+
+.no-deps {
+  color: #7ed957;
+  font-weight: 600;
+}
+
+.task-info-sub {
+  color: #aaa;
+  margin-bottom: 16px;
+}
+.badges {
+  display: flex;
+  gap: 8px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Status colors */
+.status-badge.todo {
+  background: #3a3a3a;
+  color: #ccc;
+}
+
+.status-badge.in_progress {
+  background: #ffd166;
+  color: #2b2b2b;
+}
+
+.status-badge.done {
+  background: #7ed957;
+  color: #1b2b1b;
+}
+.status-badge {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+.status-badge:active {
+  transform: scale(0.95);
+}
 
 

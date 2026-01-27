@@ -30,6 +30,68 @@ export default function Dashboard() {
   const [fromTaskId, setFromTaskId] = useState("");
   const [toTaskId, setToTaskId] = useState("");
   const [creatingDependency, setCreatingDependency] = useState(false);
+  const [showTaskInfoModal, setShowTaskInfoModal] = useState(false);
+const [selectedTaskInfo, setSelectedTaskInfo] = useState(null);
+const STATUS_FLOW = ["todo","done"];
+const getNextStatus = (current) => {
+  const idx = STATUS_FLOW.indexOf(current);
+  return STATUS_FLOW[(idx + 1) % STATUS_FLOW.length];
+};
+const hasUnfinishedDependencies = (taskId) => {
+  // Tasks that THIS task depends on
+  const deps = dependencies.filter(
+    (d) => d.from_task_id === taskId
+  );
+
+  if (deps.length === 0) return false;
+
+  return deps.some((dep) => {
+    const prerequisiteTask = tasks.find(
+      (t) => t.id === dep.to_task_id
+    );
+    return prerequisiteTask && prerequisiteTask.status !== "done";
+  });
+};
+const buildGraph = (dependencies) => {
+  const graph = {};
+
+  dependencies.forEach((d) => {
+    if (!graph[d.from_task_id]) {
+      graph[d.from_task_id] = [];
+    }
+    graph[d.from_task_id].push(d.to_task_id);
+  });
+
+  return graph;
+};
+const hasPath = (graph, start, target, visited = new Set()) => {
+  if (start === target) return true;
+
+  if (visited.has(start)) return false;
+  visited.add(start);
+
+  const neighbors = graph[start] || [];
+  for (const next of neighbors) {
+    if (hasPath(graph, next, target, visited)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+const createsCycle = (
+  dependencies,
+  fromTaskId,
+  toTaskId
+) => {
+  const graph = buildGraph(dependencies);
+
+  // check if toTask already leads back to fromTask
+  return hasPath(graph, toTaskId, fromTaskId);
+};
+
+
+
 
   const [editTitle, setEditTitle] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
@@ -183,13 +245,66 @@ export default function Dashboard() {
           <div className="tasks-flow">
             {tasks.map((task, index) => (
               <div key={task.id} className="task-flow-item">
-                <div className={`task-card priority-${task.priority}`}>
+                <div
+  className={`task-card priority-${task.priority}`}
+  onClick={() => {
+    setSelectedTaskInfo(task);
+    setShowTaskInfoModal(true);
+  }}
+>
+
                   <div className="task-header">
-                    <h3>{task.title}</h3>
-                    <span className={`priority-badge p${task.priority}`}>
-                      P{task.priority}
-                    </span>
-                  </div>
+  <h3>{task.title}</h3>
+
+  <div className="badges">
+    <span className={`priority-badge p${task.priority}`}>
+      P{task.priority}
+    </span>
+
+    <button
+  className={`status-badge ${task.status}`}
+ onClick={async (e) => {
+  e.stopPropagation();
+
+    const nextStatus = getNextStatus(task.status);
+
+    // ❌ Block finishing if dependencies not done
+    if (
+      nextStatus === "done" &&
+      hasUnfinishedDependencies(task.id)
+    ) {
+      alert(
+        "This task depends on other tasks that are not done yet."
+      );
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .update({ status: nextStatus })
+      .eq("id", task.id)
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    // 🔄 Update UI + keep sorting
+    settasks((prev) =>
+      [...prev.map((t) => (t.id === data.id ? data : t))].sort(
+        (a, b) => new Date(a.due_date) - new Date(b.due_date)
+      )
+    );
+  }}
+>
+  {task.status.replace("_", " ")}
+</button>
+
+  </div>
+</div>
+
 
                   <div className="task-footer">
                     <span className="due-date">
@@ -207,7 +322,8 @@ export default function Dashboard() {
                     <div className="task-actions-inline">
                       <button
                         className="edit-btn"
-                        onClick={() => {
+                        onClick={(e) => {
+                             e.stopPropagation();
                           setEditingTask(task);
                           setEditTitle(task.title);
                           setEditDueDate(task.due_date ?? "");
@@ -220,7 +336,8 @@ export default function Dashboard() {
 
                       <button
                         className="delete-btn"
-                        onClick={async () => {
+                        onClick={async (e) => {
+                         e.stopPropagation();
                           const confirmed = confirm("Delete this task?");
                           if (!confirmed) return;
 
@@ -362,12 +479,14 @@ export default function Dashboard() {
             const { data, error } = await supabase
               .from("tasks")
               .insert({
-                title: newTaskTitle,
-                due_date: newTaskDueDate,
-                priority: newTaskPriority,
-                project_id: selectedProjectId,
-                user_id: user.id,
-              })
+  title: newTaskTitle,
+  due_date: newTaskDueDate,
+  priority: newTaskPriority,
+  status: "todo",
+  project_id: selectedProjectId,
+  user_id: user.id,
+})
+
               .select()
               .single();
 
@@ -434,53 +553,53 @@ export default function Dashboard() {
 
       <div className="modal-actions">
         <button
-          className="cancel"
-          onClick={() => {
-            setShowDependencyModal(false);
-            setFromTaskId("");
-            setToTaskId("");
-          }}
-        >
-          Cancel
-        </button>
+  className="create"
+  disabled={
+    !fromTaskId ||
+    !toTaskId ||
+    fromTaskId === toTaskId ||
+    creatingDependency
+  }
+  onClick={async () => {
+    // 🚫 CYCLE DETECTION
+    if (
+      createsCycle(dependencies, fromTaskId, toTaskId)
+    ) {
+      alert(
+        "🚨 Invalid dependency: this creates a cycle.\nTasks would block each other forever."
+      );
+      return;
+    }
 
-        <button
-          className="create"
-          disabled={
-            !fromTaskId ||
-            !toTaskId ||
-            fromTaskId === toTaskId ||
-            creatingDependency
-          }
-          onClick={async () => {
-            setCreatingDependency(true);
+    setCreatingDependency(true);
 
-            const { data, error } = await supabase
-              .from("task_dependencies")
-              .insert({
-                user_id: user.id,
-                project_id: selectedProjectId,
-                from_task_id: fromTaskId,
-                to_task_id: toTaskId,
-              })
-              .select()
-              .single();
+    const { data, error } = await supabase
+      .from("task_dependencies")
+      .insert({
+        user_id: user.id,
+        project_id: selectedProjectId,
+        from_task_id: fromTaskId,
+        to_task_id: toTaskId,
+      })
+      .select()
+      .single();
 
-            setCreatingDependency(false);
+    setCreatingDependency(false);
 
-            if (error) {
-              alert(error.message);
-              return;
-            }
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
-            setDependencies((prev) => [...prev, data]);
-            setShowDependencyModal(false);
-            setFromTaskId("");
-            setToTaskId("");
-          }}
-        >
-          {creatingDependency ? "Creating..." : "Create Dependency"}
-        </button>
+    setDependencies((prev) => [...prev, data]);
+    setShowDependencyModal(false);
+    setFromTaskId("");
+    setToTaskId("");
+  }}
+>
+  {creatingDependency ? "Creating..." : "Create Dependency"}
+</button>
+
       </div>
     </div>
   </div>
@@ -560,6 +679,81 @@ export default function Dashboard() {
           }}
         >
           {updating ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{/* ================= TASK INFO MODAL ================= */}
+{showTaskInfoModal && selectedTaskInfo && (
+  <div className="modal-overlay">
+    <div className="modal wide">
+      <h2>Task Details</h2>
+
+      <h3 style={{ marginBottom: "8px" }}>
+        {selectedTaskInfo.title}
+      </h3>
+
+      <p className="task-info-sub">
+        📅 Due{" "}
+        {selectedTaskInfo.due_date
+          ? new Date(selectedTaskInfo.due_date).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "No due date"}
+      </p>
+      
+      {selectedTaskInfo.status === "done" ? (
+  <div className="dependency-info">
+    <p className="no-deps">
+      ✅ This task is complete
+    </p>
+  </div>
+) : (
+  <div className="dependency-info">
+    <h4>Dependencies</h4>
+
+    {dependencies.filter(
+      (d) => d.to_task_id === selectedTaskInfo.id
+    ).length === 0 ? (
+      <p className="no-deps">
+        ✅ No dependencies — you’re free to do this task.
+      </p>
+    ) : (
+      <ul className="dependency-list">
+        {dependencies
+          .filter((d) => d.to_task_id === selectedTaskInfo.id)
+          .map((dep) => {
+            const dependsOn = tasks.find(
+              (t) => t.id === dep.from_task_id
+            );
+
+            return (
+              <li key={dep.id}>
+                ⛓ Depends on{" "}
+                <strong>
+                  {dependsOn?.title ?? "Unknown task"}
+                </strong>
+              </li>
+            );
+          })}
+      </ul>
+    )}
+  </div>
+)}
+
+
+      <div className="modal-actions">
+        <button
+          className="cancel"
+          onClick={() => {
+            setShowTaskInfoModal(false);
+            setSelectedTaskInfo(null);
+          }}
+        >
+          Close
         </button>
       </div>
     </div>
