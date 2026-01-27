@@ -1,3 +1,7 @@
+/* =========================
+   GLOBAL
+========================= */
+
 * {
   box-sizing: border-box;
 }
@@ -13,7 +17,10 @@ body {
   color: #fff;
 }
 
-/* Top bar */
+/* =========================
+   TOP BAR
+========================= */
+
 .topbar {
   height: 64px;
   background: linear-gradient(135deg, #3c096c, #5a189a);
@@ -42,13 +49,19 @@ body {
   background-color: rgba(224, 170, 255, 0.15);
 }
 
-/* Layout */
+/* =========================
+   LAYOUT
+========================= */
+
 .content {
   display: flex;
   height: calc(100vh - 64px);
 }
 
-/* Sidebar */
+/* =========================
+   SIDEBAR
+========================= */
+
 .sidebar {
   width: 240px;
   background-color: #10002b;
@@ -73,12 +86,16 @@ body {
   margin-bottom: 6px;
   cursor: pointer;
   color: #ddd;
+  transition: background-color 0.15s ease;
 }
 
-.sidebar li.active,
 .sidebar li:hover {
   background-color: #240046;
-  color: #fff;
+}
+
+.sidebar li.active {
+  background-color: #5a189a;
+  color: white;
 }
 
 .add-project {
@@ -93,10 +110,17 @@ body {
   font-weight: 600;
 }
 
-/* Main */
+/* =========================
+   MAIN CONTENT
+========================= */
+
 .main {
   flex: 1;
-  padding: 32px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-x: hidden;
 }
 
 .main h2 {
@@ -108,30 +132,157 @@ body {
   margin-bottom: 24px;
 }
 
-/* Cards */
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-}
-
-.card {
-  background-color: #14002e;
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid #240046;
-}
-
-.card h3 {
-  margin-top: 0;
-  color: #c77dff;
-}
-
 .loading {
   color: white;
   padding: 40px;
 }
-/* Modal overlay */
+
+.empty {
+  color: #aaa;
+  margin-top: 30px;
+}
+
+/* =========================
+   TASK FLOW (WRAPPED CORRECTLY)
+========================= */
+
+.tasks-flow {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 32px;
+}
+
+.task-flow-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* =========================
+   TASK CARD
+========================= */
+
+.task-card {
+  width: 100%;
+  min-height: 86px;
+  background: linear-gradient(
+    135deg,
+    #2b014f 0%,
+    #3a0a6a 50%,
+    #2a0147 100%
+  );
+  border-radius: 22px;
+  padding: 20px 26px;
+  color: #ffffff;
+
+  box-shadow:
+    0 12px 30px rgba(90, 24, 154, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.task-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 18px 44px rgba(90, 24, 154, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* =========================
+   TASK HEADER
+========================= */
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-header h3 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+/* =========================
+   PRIORITY BADGES
+========================= */
+
+.priority-badge {
+  min-width: 42px;
+  height: 26px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.p1 {
+  background: #ff4d6d;
+  box-shadow: 0 0 12px rgba(255, 77, 109, 0.6);
+}
+
+.p2 {
+  background: #ffd166;
+  color: #2b2b2b;
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.55);
+}
+
+.p3 {
+  background: #7ed957;
+  color: #1b2b1b;
+  box-shadow: 0 0 12px rgba(126, 217, 87, 0.5);
+}
+
+/* =========================
+   TASK FOOTER
+========================= */
+
+.task-footer {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.due-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #d6cfff;
+}
+
+/* =========================
+   ARROW
+========================= */
+
+.task-arrow {
+  align-self: center;
+  margin: 14px 0;
+  font-size: 22px;
+  color: #b983ff;
+  opacity: 0.9;
+  text-shadow: 0 0 12px rgba(185, 131, 255, 0.6);
+  animation: pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* =========================
+   MODAL
+========================= */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -145,7 +296,6 @@ body {
   z-index: 1000;
 }
 
-/* Modal box */
 .modal {
   width: 360px;
   background-color: #10002b;
@@ -208,3 +358,129 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.task-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.primary-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #9d4edd, #7b2cbf);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #9d4edd;
+  background: transparent;
+  color: #e0aaff;
+  cursor: pointer;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #5a189a;
+  background-color: #1a0036;
+  color: white;
+  margin-bottom: 20px;
+}
+.task-actions-inline {
+  display: flex;
+  gap: 10px;
+  margin-left: 12px;
+}
+
+/* ===== EDIT BUTTON ===== */
+.edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  background: rgba(157, 78, 221, 0.18);
+  color: #e0aaff;
+
+  border: 1px solid rgba(157, 78, 221, 0.5);
+  cursor: pointer;
+
+  transition: all 0.15s ease;
+}
+
+.edit-btn:hover {
+  background: rgba(157, 78, 221, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ===== DELETE BUTTON ===== */
+.delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  background: rgba(255, 77, 109, 0.18);
+  color: #ff8fa3;
+
+  border: 1px solid rgba(255, 77, 109, 0.55);
+  cursor: pointer;
+
+  transition: all 0.15s ease;
+}
+
+.delete-btn:hover {
+  background: rgba(255, 77, 109, 0.35);
+  transform: translateY(-1px);
+}
+.dependency-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.dependency-row select {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #5a189a;
+  background-color: #1a0036;
+  color: white;
+}
+
+.dependency-text {
+  color: #c77dff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dependency-error {
+  color: #ff4d6d;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+
