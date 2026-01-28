@@ -18,6 +18,8 @@ export default function Dashboard() {
   const [tasks, settasks] = useState([]);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDependencyModal, setShowDependencyModal] = useState(false);
+  const [showGraphModal, setShowGraphModal] = useState(false);
+
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
@@ -37,6 +39,68 @@ const getNextStatus = (current) => {
   const idx = STATUS_FLOW.indexOf(current);
   return STATUS_FLOW[(idx + 1) % STATUS_FLOW.length];
 };
+const buildDependencyGraphView = () => {
+  const graph = {};
+  const inDegree = {};
+  const involvedTaskIds = new Set();
+
+  // mark tasks that are involved in dependencies
+  dependencies.forEach((d) => {
+    involvedTaskIds.add(d.from_task_id);
+    involvedTaskIds.add(d.to_task_id);
+  });
+
+  // init ONLY involved tasks
+  tasks.forEach((t) => {
+    if (involvedTaskIds.has(t.id)) {
+      graph[t.id] = [];
+      inDegree[t.id] = 0;
+    }
+  });
+
+  // build graph
+  dependencies.forEach((d) => {
+    if (
+      graph[d.from_task_id] &&
+      graph[d.to_task_id]
+    ) {
+      graph[d.from_task_id].push(d.to_task_id);
+      inDegree[d.to_task_id]++;
+    }
+  });
+
+  // Kahn layers
+  let queue = Object.keys(inDegree).filter(
+    (id) => inDegree[id] === 0
+  );
+
+  const layers = [];
+
+  while (queue.length) {
+    const layer = [...queue];
+    layers.push(layer);
+
+    const nextQueue = [];
+
+    layer.forEach((id) => {
+      graph[id].forEach((n) => {
+        inDegree[n]--;
+        if (inDegree[n] === 0) {
+          nextQueue.push(n);
+        }
+      });
+    });
+
+    queue = nextQueue;
+  }
+
+  return layers.map((layer) =>
+    layer
+      .map((id) => tasks.find((t) => t.id === id))
+      .filter(Boolean)
+  );
+};
+
 const hasUnfinishedDependencies = (taskId) => {
   // Tasks that THIS task depends on
   const deps = dependencies.filter(
@@ -89,6 +153,23 @@ const createsCycle = (
   // check if toTask already leads back to fromTask
   return hasPath(graph, toTaskId, fromTaskId);
 };
+const handleRemoveDependency = async (dependencyId) => {
+  // optimistic UI update (feels instant, WWE crowd pop)
+  setDependencies((prev) =>
+    prev.filter((d) => d.id !== dependencyId)
+  );
+
+  const { error } = await supabase
+    .from("task_dependencies")
+    .delete()
+    .eq("id", dependencyId);
+
+  if (error) {
+    console.error(error);
+    alert("Failed to remove dependency 😬");
+  }
+};
+
 
 
 
@@ -240,6 +321,14 @@ const createsCycle = (
             >
               🔗 Declare Dependency
             </button>
+            <button
+  className="secondary-btn"
+  disabled={!selectedProjectId}
+  onClick={() => setShowGraphModal(true)}
+>
+  🧠 View Dependency Graph
+</button>
+
           </div>
 
           <div className="tasks-flow">
@@ -522,7 +611,7 @@ const createsCycle = (
           value={toTaskId}
           onChange={(e) => setToTaskId(e.target.value)}
         >
-          <option value="">Select task</option>
+          <option value="">Task 1</option>
           {tasks.map((task) => (
             <option key={task.id} value={task.id}>
               {task.title}
@@ -536,7 +625,7 @@ const createsCycle = (
           value={fromTaskId}
           onChange={(e) => setFromTaskId(e.target.value)}
         >
-          <option value="">Select task</option>
+          <option value="">Task 2</option>
           {tasks.map((task) => (
             <option key={task.id} value={task.id}>
               {task.title}
@@ -713,35 +802,47 @@ const createsCycle = (
   </div>
 ) : (
   <div className="dependency-info">
-    <h4>Dependencies</h4>
+  <h4>Dependencies</h4>
 
-    {dependencies.filter(
-      (d) => d.to_task_id === selectedTaskInfo.id
-    ).length === 0 ? (
-      <p className="no-deps">
-        ✅ No dependencies — you’re free to do this task.
-      </p>
-    ) : (
-      <ul className="dependency-list">
-        {dependencies
-          .filter((d) => d.to_task_id === selectedTaskInfo.id)
-          .map((dep) => {
-            const dependsOn = tasks.find(
-              (t) => t.id === dep.from_task_id
-            );
+  {dependencies.filter(
+    (d) => d.to_task_id === selectedTaskInfo.id
+  ).length === 0 ? (
+    <p className="no-deps">
+      ✅ This task has no dependencies — you’re free to complete it.
+    </p>
+  ) : (
+    <ul className="dependency-list">
+      {dependencies
+        .filter((d) => d.to_task_id === selectedTaskInfo.id)
+        .map((dep) => {
+          const dependsOn = tasks.find(
+            (t) => t.id === dep.from_task_id
+          );
 
-            return (
-              <li key={dep.id}>
+          return (
+            <li key={dep.id} className="dependency-item">
+              <span className="dependency-text">
                 ⛓ Depends on{" "}
                 <strong>
                   {dependsOn?.title ?? "Unknown task"}
                 </strong>
-              </li>
-            );
-          })}
-      </ul>
-    )}
-  </div>
+              </span>
+
+              <button
+                className="remove-btn"
+                onClick={() =>
+                  handleRemoveDependency(dep.id)
+                }
+              >
+                ✖ Remove
+              </button>
+            </li>
+          );
+        })}
+    </ul>
+  )}
+</div>
+
 )}
 
 
@@ -759,6 +860,61 @@ const createsCycle = (
     </div>
   </div>
 )}
+{showGraphModal && (
+  <div className="modal-overlay">
+    <div className="modal wide">
+      <h2>Project Dependency Graph</h2>
+
+      {dependencies.length === 0 ? (
+        <p className="no-deps">
+          ✅ No dependencies in this project.
+        </p>
+      ) : (
+        <div className="graph-view">
+          {buildDependencyGraphView().map(
+            (layer, index) => (
+              <div key={index} className="graph-layer">
+                <h4>
+                  Level {index}
+                  {index === 0 && " (Independent)"}
+                </h4>
+
+                <ul>
+                  {layer.map(
+                    (task) =>
+                      task && (
+                        <li key={task.id}>
+                          {task.title}
+                        </li>
+                      )
+                  )}
+                </ul>
+
+                {index <
+                  buildDependencyGraphView().length -
+                    1 && (
+                  <div className="graph-arrow">
+                    ↓
+                  </div>
+                )}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      <div className="modal-actions">
+        <button
+          className="cancel"
+          onClick={() => setShowGraphModal(false)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
 
       
