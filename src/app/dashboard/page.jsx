@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+
 import "./dashboard.css";
 
 export default function Dashboard() {
@@ -19,6 +20,24 @@ export default function Dashboard() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showDependencyModal, setShowDependencyModal] = useState(false);
   const [showGraphModal, setShowGraphModal] = useState(false);
+  const [showMoodleModal, setShowMoodleModal] = useState(false);
+const [moodleToken, setMoodleToken] = useState("");
+const [connectingMoodle, setConnectingMoodle] = useState(false);
+useEffect(() => {
+  document.body.style.overflow = showMoodleModal ? "hidden" : "auto";
+}, [showMoodleModal]);
+useEffect(() => {
+  document.body.style.overflow = showModal ? "hidden" : "auto";
+}, [showModal]);
+useEffect(() => {
+  document.body.style.overflow = showTaskModal ? "hidden" : "auto";
+}, [showTaskModal]);
+useEffect(() => {
+  document.body.style.overflow = showDependencyModal ? "hidden" : "auto";
+}, [showDependencyModal]);
+useEffect(() => {
+  document.body.style.overflow = showGraphModal ? "hidden" : "auto";
+}, [showGraphModal]);
 
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -269,17 +288,28 @@ const handleRemoveDependency = async (dependencyId) => {
   return (
     <div className="dashboard">
       <header className="topbar">
-        <h1>TaskFlow</h1>
-        <button
-          className="logout-btn"
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.push("/login");
-          }}
-        >
-          Logout
-        </button>
-      </header>
+  <h1>TaskFlow</h1>
+
+  <div className="topbar-actions">
+    <button
+      className="moodle-btn"
+      onClick={() => setShowMoodleModal(true)}
+    >
+      🔗 Connect Moodle
+    </button>
+
+    <button
+      className="logout-btn"
+      onClick={async () => {
+        await supabase.auth.signOut();
+        router.push("/login");
+      }}
+    >
+      Logout
+    </button>
+  </div>
+</header>
+
 
       <div className="content">
         <aside className="sidebar">
@@ -914,6 +944,87 @@ const handleRemoveDependency = async (dependencyId) => {
     </div>
   </div>
 )}
+{showMoodleModal && (
+  <div className="moodle-modal-overlay">
+    <div className="moodle-modal">
+      <h2>Connect Moodle</h2>
+
+      <p
+        style={{
+          fontSize: "14px",
+          color: "#555",
+          marginBottom: "14px",
+          lineHeight: "1.5",
+        }}
+      >
+        Paste your Moodle access token.  
+        <br />
+        It will be used only to sync your courses and assignments.
+      </p>
+
+      <input
+        type="password"
+        placeholder="Moodle access token"
+        value={moodleToken}
+        onChange={(e) => setMoodleToken(e.target.value)}
+      />
+
+      {/* 🔐 Trust copy */}
+      <p
+        style={{
+          fontSize: "12px",
+          color: "#b44141",
+          marginTop: "-6px",
+          marginBottom: "18px",
+        }}
+      >
+        🔐 Your token is encrypted, stored securely, and never shared.
+      </p>
+
+      <div className="moodle-modal-actions">
+        <button
+          className="cancel"
+          onClick={() => {
+            setShowMoodleModal(false);
+            setMoodleToken("");
+          }}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="primary"
+          disabled={!moodleToken || connectingMoodle}
+          onClick={async () => {
+            try {
+              setConnectingMoodle(true);
+
+              const { error } =
+                await supabase.functions.invoke(
+                  "connect-moodle",
+                  { body: { token: moodleToken } }
+                );
+
+              if (error) throw error;
+
+              alert("✅ Moodle connected successfully!");
+              setShowMoodleModal(false);
+              setMoodleToken("");
+            } catch (err) {
+              alert(err.message ?? "Failed to connect Moodle");
+            } finally {
+              setConnectingMoodle(false);
+            }
+          }}
+        >
+          {connectingMoodle ? "Connecting…" : "Connect"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
 
 

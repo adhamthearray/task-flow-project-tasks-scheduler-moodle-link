@@ -382,6 +382,14 @@ body {
   color: #e0aaff;
   cursor: pointer;
 }
+.moodle-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #ffffff00;
+  background-color:#e6691b ;
+  color: #ffffff;
+  cursor: pointer;
+}
 
 .primary-btn:disabled,
 .secondary-btn:disabled {
@@ -675,4 +683,106 @@ body {
 .graph-view::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 6px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+/* ================= MOODLE MODAL ================= */
+
+.moodle-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.moodle-modal {
+  width: 380px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 26px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+  border: 2px solid #e6691b;
+}
+
+.moodle-modal h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  color: #e6691b;
+  font-weight: 700;
+}
+
+/* Inputs */
+.moodle-modal input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid #e6691b;
+  background-color: #fff;
+  color: #222;
+  margin-bottom: 20px;
+}
+
+.moodle-modal input::placeholder {
+  color: #999;
+}
+
+.moodle-modal input:focus {
+  outline: none;
+  border-color: #e6691b;
+  box-shadow: 0 0 0 2px rgba(230, 105, 27, 0.25);
+}
+
+/* Actions */
+.moodle-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.moodle-modal-actions button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* Cancel */
+.moodle-modal-actions .cancel {
+  background: transparent;
+  color: #666;
+}
+
+.moodle-modal-actions .cancel:hover {
+  color: #000;
+}
+
+/* Primary (Connect / Sync / Confirm) */
+.moodle-modal-actions .primary {
+  background-color: #e6691b;
+  color: white;
+}
+
+.moodle-modal-actions .primary:hover {
+  background-color: #d45e16;
+}
+
+.moodle-modal-actions .primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
