@@ -62,40 +62,62 @@ body {
    SIDEBAR
 ========================= */
 
+/* Sidebar container */
 .sidebar {
-  width: 240px;
-  background-color: #10002b;
-  padding: 20px;
-  border-right: 1px solid #240046;
+  width: 280px;
+  height: calc(100vh - 64px); /* adjust if topbar height differs */
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #240046, #10002b);
+  padding: 16px;
+  overflow: hidden; /* IMPORTANT */
 }
 
-.sidebar h3 {
-  margin-top: 0;
-  margin-bottom: 16px;
-  color: #c77dff;
-}
-
+/* Projects list */
 .sidebar ul {
   list-style: none;
   padding: 0;
+  margin: 12px 0;
+  flex: 1; /* TAKE AVAILABLE SPACE */
+  overflow-y: auto; /* SCROLL HERE */
 }
 
+/* Smooth scrolling */
+.sidebar ul::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar ul::-webkit-scrollbar-thumb {
+  background: #5a189a;
+  border-radius: 6px;
+}
+
+.sidebar ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Project item */
 .sidebar li {
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 6px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  color: #ddd;
-  transition: background-color 0.15s ease;
+  color: #e0aaff;
+  transition: background 0.2s ease;
 }
 
 .sidebar li:hover {
-  background-color: #240046;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .sidebar li.active {
-  background-color: #5a189a;
+  background: linear-gradient(135deg, #7b2cbf, #9d4edd);
   color: white;
+}
+
+/* Keep "+ New Project" pinned at bottom */
+.add-project {
+  margin-top: auto;
 }
 
 .add-project {
@@ -697,13 +719,12 @@ body {
 }
 /* ================= MOODLE MODAL ================= */
 
+/* ================= MOODLE MODAL ================= */
+
 .moodle-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.55);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -712,77 +733,100 @@ body {
 
 .moodle-modal {
   width: 380px;
-  background-color: #ffffff;
+  background-color: #e6691b; /* Moodle orange */
   border-radius: 16px;
-  padding: 26px;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
-  border: 2px solid #e6691b;
+  padding: 24px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+  color: white; /* 🔥 THIS is the key */
 }
 
+/* Headings */
 .moodle-modal h2 {
   margin-top: 0;
-  margin-bottom: 18px;
-  color: #e6691b;
-  font-weight: 700;
+  margin-bottom: 14px;
+  color: white;
 }
 
-/* Inputs */
+/* Body text */
+.moodle-modal .hint {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  color: white;
+}
+
+/* Trust copy */
+.moodle-modal .trust {
+  font-size: 12px;
+  color: #fff4ec;
+  margin-top: -6px;
+  margin-bottom: 18px;
+}
+
+/* Input */
 .moodle-modal input {
   width: 100%;
   padding: 12px;
   border-radius: 10px;
-  border: 1.5px solid #e6691b;
-  background-color: #fff;
-  color: #222;
-  margin-bottom: 20px;
+  border: none;
+  background-color: white;
+  color: #333;
+  margin-bottom: 12px;
 }
 
 .moodle-modal input::placeholder {
-  color: #999;
+  color: #888;
 }
 
-.moodle-modal input:focus {
-  outline: none;
-  border-color: #e6691b;
-  box-shadow: 0 0 0 2px rgba(230, 105, 27, 0.25);
-}
-
-/* Actions */
-.moodle-modal-actions {
+/* Buttons layout */
+.moodle-modal-actions,
+.moodle-actions-vertical {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
 
-.moodle-modal-actions button {
-  padding: 10px 18px;
+.moodle-actions-vertical {
+  flex-direction: column;
+}
+
+/* Buttons */
+.moodle-modal .primary {
+  background: white;
+  color: #e6691b;
+  font-weight: 700;
   border-radius: 10px;
+  padding: 10px 16px;
   border: none;
   cursor: pointer;
-  font-weight: 700;
 }
 
-/* Cancel */
-.moodle-modal-actions .cancel {
-  background: transparent;
-  color: #666;
-}
-
-.moodle-modal-actions .cancel:hover {
-  color: #000;
-}
-
-/* Primary (Connect / Sync / Confirm) */
-.moodle-modal-actions .primary {
-  background-color: #e6691b;
-  color: white;
-}
-
-.moodle-modal-actions .primary:hover {
-  background-color: #d45e16;
-}
-
-.moodle-modal-actions .primary:disabled {
+.moodle-modal .primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.moodle-modal .secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 10px;
+  padding: 10px 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.moodle-modal .cancel {
+  background: transparent;
+  color: #ffe6d5;
+  border: none;
+  cursor: pointer;
+}
+
+.moodle-modal .cancel:hover {
+  color: white;
+}
+.content {
+  display: flex;
+  height: calc(100vh - 64px);
+  overflow: hidden;
 }

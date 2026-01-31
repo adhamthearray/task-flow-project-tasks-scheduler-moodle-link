@@ -53,6 +53,9 @@ useEffect(() => {
   const [creatingDependency, setCreatingDependency] = useState(false);
   const [showTaskInfoModal, setShowTaskInfoModal] = useState(false);
 const [selectedTaskInfo, setSelectedTaskInfo] = useState(null);
+const [hasMoodleConnection, setHasMoodleConnection] = useState(false);
+const [replaceTokenMode, setReplaceTokenMode] = useState(false);
+
 const STATUS_FLOW = ["todo","done"];
 const getNextStatus = (current) => {
   const idx = STATUS_FLOW.indexOf(current);
@@ -197,6 +200,22 @@ const handleRemoveDependency = async (dependencyId) => {
   const [editDueDate, setEditDueDate] = useState("");
   const [editPriority, setEditPriority] = useState(2);
   const [updating, setUpdating] = useState(false);
+  useEffect(() => {
+  if (!user) return;
+
+  const checkMoodleConnection = async () => {
+    const { data } = await supabase
+      .from("moodle_connections")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    setHasMoodleConnection(!!data);
+  };
+
+  checkMoodleConnection();
+}, [user]);
+
 
   // 🔹 EFFECT 1: get user
   useEffect(() => {
@@ -293,7 +312,11 @@ const handleRemoveDependency = async (dependencyId) => {
   <div className="topbar-actions">
     <button
       className="moodle-btn"
-      onClick={() => setShowMoodleModal(true)}
+      onClick={() => {
+  setReplaceTokenMode(false);
+  setShowMoodleModal(true);
+}}
+
     >
       🔗 Connect Moodle
     </button>
@@ -947,82 +970,133 @@ const handleRemoveDependency = async (dependencyId) => {
 {showMoodleModal && (
   <div className="moodle-modal-overlay">
     <div className="moodle-modal">
-      <h2>Connect Moodle</h2>
 
-      <p
-        style={{
-          fontSize: "14px",
-          color: "#555",
-          marginBottom: "14px",
-          lineHeight: "1.5",
-        }}
-      >
-        Paste your Moodle access token.  
-        <br />
-        It will be used only to sync your courses and assignments.
-      </p>
+      <h2>Moodle Connection</h2>
 
-      <input
-        type="password"
-        placeholder="Moodle access token"
-        value={moodleToken}
-        onChange={(e) => setMoodleToken(e.target.value)}
-      />
+      {/* CASE 1: Already connected & NOT replacing token */}
+      {hasMoodleConnection && !replaceTokenMode && (
+        <>
+          <p className="hint">
+            Your Moodle account is already connected.
+          </p>
 
-      {/* 🔐 Trust copy */}
-      <p
-        style={{
-          fontSize: "12px",
-          color: "#b44141",
-          marginTop: "-6px",
-          marginBottom: "18px",
-        }}
-      >
-        🔐 Your token is encrypted, stored securely, and never shared.
-      </p>
+          <div className="moodle-actions-vertical">
+            <button
+              className="primary"
+              onClick={async () => {
+                try {
+                  setConnectingMoodle(true);
 
-      <div className="moodle-modal-actions">
-        <button
-          className="cancel"
-          onClick={() => {
-            setShowMoodleModal(false);
-            setMoodleToken("");
-          }}
-        >
-          Cancel
-        </button>
+                  const { error } =
+                    await supabase.functions.invoke("sync-moodle");
 
-        <button
-          className="primary"
-          disabled={!moodleToken || connectingMoodle}
-          onClick={async () => {
-            try {
-              setConnectingMoodle(true);
+                  if (error) throw error;
 
-              const { error } =
-                await supabase.functions.invoke(
-                  "connect-moodle",
-                  { body: { token: moodleToken } }
-                );
+                  alert("🔄 Moodle synced successfully!");
+                  setShowMoodleModal(false);
+                } catch (err) {
+                  alert(err.message ?? "Failed to sync Moodle");
+                } finally {
+                  setConnectingMoodle(false);
+                }
+              }}
+            >
+              🔄 Sync Now
+            </button>
 
-              if (error) throw error;
+            <button
+              className="secondary"
+              onClick={() => setReplaceTokenMode(true)}
+            >
+              🔁 Replace Token
+            </button>
 
-              alert("✅ Moodle connected successfully!");
-              setShowMoodleModal(false);
-              setMoodleToken("");
-            } catch (err) {
-              alert(err.message ?? "Failed to connect Moodle");
-            } finally {
-              setConnectingMoodle(false);
-            }
-          }}
-        >
-          {connectingMoodle ? "Connecting…" : "Connect"}
-        </button>
-      </div>
+            <button
+              className="cancel"
+              onClick={() => setShowMoodleModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* CASE 2: Not connected OR replacing token */}
+      {(!hasMoodleConnection || replaceTokenMode) && (
+        <>
+          <p className="hint">
+            Paste your Moodle access token.
+            <br />
+            It will be used only to sync your courses and assignments.
+          </p>
+
+          <input
+            type="password"
+            placeholder="Moodle access token"
+            value={moodleToken}
+            onChange={(e) => setMoodleToken(e.target.value)}
+          />
+
+          <p className="trust">
+            🔐 Your token is encrypted, stored securely, and never shared.
+          </p>
+
+          <div className="moodle-modal-actions">
+            <button
+              className="cancel"
+              onClick={() => {
+                setShowMoodleModal(false);
+                setReplaceTokenMode(false);
+                setMoodleToken("");
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="primary"
+              disabled={!moodleToken || connectingMoodle}
+              onClick={async () => {
+                try {
+                  setConnectingMoodle(true);
+
+                  const { error: connectError } =
+                    await supabase.functions.invoke(
+                      "connect-moodle",
+                      { body: { token: moodleToken } }
+                    );
+
+                  if (connectError) throw connectError;
+
+                  const { error: syncError } =
+                    await supabase.functions.invoke("sync-moodle");
+
+                  if (syncError) throw syncError;
+
+                  setHasMoodleConnection(true);
+
+                  alert("✅ Moodle connected & synced!");
+                  setShowMoodleModal(false);
+                  setReplaceTokenMode(false);
+                  setMoodleToken("");
+
+                } catch (err) {
+                  alert(err.message ?? "Failed to connect Moodle");
+                } finally {
+                  setConnectingMoodle(false);
+                }
+              }}
+            >
+              {connectingMoodle ? "Working…" : "Connect & Sync"}
+            </button>
+          </div>
+        </>
+      )}
+
     </div>
   </div>
 )}
+
 
 
 
