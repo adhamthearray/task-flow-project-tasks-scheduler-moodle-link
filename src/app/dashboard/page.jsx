@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -39,6 +40,10 @@ useEffect(() => {
 useEffect(() => {
   document.body.style.overflow = showGraphModal ? "hidden" : "auto";
 }, [showGraphModal]);
+const selectedProject = projects.find(
+  (p) => p.id === selectedProjectId
+);
+
 
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -314,7 +319,15 @@ useEffect(() => {
     loadDependencies();
   }, [selectedProjectId, user]);
 
-  if (loading) return <div className="loading">Loading...</div>;
+ if (loading) {
+  return (
+    <div className="loading-screen">
+      <div className="spinner" />
+      <p>Waking up TaskFlow…</p>
+    </div>
+  );
+}
+
 
   return (
     <div className="dashboard">
@@ -349,180 +362,249 @@ useEffect(() => {
       <div className="content">
         <aside className="sidebar">
           <h3>Projects</h3>
-          <ul>
-            {projects.map((project) => (
-              <li
-                key={project.id}
-                onClick={() => setSelectedProjectId(project.id)}
-                className={project.id === selectedProjectId ? "active" : ""}
-              >
-                {project.name}
-              </li>
-            ))}
-          </ul>
+         <ul>
+  {projects.length === 0 ? (
+    <li className="empty-state">
+      <p>No projects yet</p>
+      <span>Create your first one 🚀</span>
+    </li>
+  ) : (
+    projects.map((project) => (
+      <li
+  key={project.id}
+  onClick={() => setSelectedProjectId(project.id)}
+  className={`
+    ${project.id === selectedProjectId ? "active" : ""}
+    ${project.source === "MOODLE" ? "moodle-project" : ""}
+  `}
+>
+  {project.name}
+  {project.source === "MOODLE" && (
+    <span className="moodle-tag">Moodle</span>
+  )}
+</li>
+
+    ))
+  )}
+</ul>
+
 
           <button className="add-project" onClick={() => setShowModal(true)}>
             + New Project
           </button>
         </aside>
 
-        <main className="main">
-          <h2>Welcome back 👋</h2>
-          <p className="email">{user.email}</p>
-
-          <div className="task-actions">
-            <button
-              className="primary-btn"
-              disabled={!selectedProjectId}
-              onClick={() => setShowTaskModal(true)}
-            >
-              + Add Task
-            </button>
-
-            <button
-              className="secondary-btn"
-              disabled={!selectedProjectId}
-              onClick={() => setShowDependencyModal(true)}
-            >
-              🔗 Declare Dependency
-            </button>
-            <button
-  className="secondary-btn"
-  disabled={!selectedProjectId}
-  onClick={() => setShowGraphModal(true)}
+        <main
+  className={`main ${
+    selectedProject?.source === "MOODLE" ? "moodle-context" : ""
+  }`}
 >
-  🧠 View Dependency Graph
-</button>
 
+
+  {/* 🟠 CASE 1: No projects at all */}
+  {projects.length === 0 && (
+    <div className="empty-main hero">
+      <h2>Welcome to TaskFlow 👋</h2>
+      <p>
+        Your workspace is empty right now.<br />
+        Create your first project to get started.
+      </p>
+
+      <button
+        className="primary-btn"
+        onClick={() => setShowModal(true)}
+      >
+        + Create your first project
+      </button>
+    </div>
+  )}
+
+  {/* 🟠 CASE 2: Projects exist but none selected */}
+  {projects.length > 0 && !selectedProjectId && (
+    <div className="empty-main">
+      <h2>Select a project</h2>
+      <p>
+        Choose a project from the sidebar to view its tasks.
+      </p>
+    </div>
+  )}
+
+  {/* 🟠 CASE 3: Project selected but no tasks */}
+  {selectedProjectId && tasks.length === 0 && (
+    <div className="empty-main">
+      <h2>No tasks yet</h2>
+      <p>
+        
+        Add your first task to bring it to life ✨
+      </p>
+
+      <button
+        className="primary-btn"
+        onClick={() => setShowTaskModal(true)}
+      >
+        + Add first task
+      </button>
+    </div>
+  )}
+
+  {/* 🟢 CASE 4: Normal content */}
+  {selectedProjectId && tasks.length > 0 && (
+  <>
+    <h2>Welcome back 👋</h2>
+    <p className="email">{user.email}</p>
+
+    <div className="task-actions">
+      <button
+        className="primary-btn"
+        onClick={() => setShowTaskModal(true)}
+      >
+        + Add Task
+      </button>
+
+      <button
+        className="secondary-btn"
+        onClick={() => setShowDependencyModal(true)}
+      >
+        🔗 Declare Dependency
+      </button>
+
+      <button
+        className="secondary-btn"
+        onClick={() => setShowGraphModal(true)}
+      >
+        🧠 View Dependency Graph
+      </button>
+    </div>
+
+    <div className="tasks-flow">
+  {tasks.map((task, index) => (
+    <div key={task.id} className="task-flow-item">
+      <div
+  className={`
+    task-card
+    priority-${task.priority}
+    ${task.moodle_assignment_id ? "moodle-task" : ""}
+  `}
+>
+
+        <div className="task-header">
+          <h3>{task.title}</h3>
+
+          <div className="badges">
+            <span className={`priority-badge p${task.priority}`}>
+              P{task.priority}
+            </span>
+
+            <button
+              className={`status-badge ${task.status}`}
+              onClick={async (e) => {
+                e.stopPropagation();
+
+                const nextStatus = getNextStatus(task.status);
+
+                if (
+                  nextStatus === "done" &&
+                  hasUnfinishedDependencies(task.id)
+                ) {
+                  alert(
+                    "This task depends on other tasks that are not done yet."
+                  );
+                  return;
+                }
+
+                const { data, error } = await supabase
+                  .from("tasks")
+                  .update({ status: nextStatus })
+                  .eq("id", task.id)
+                  .select()
+                  .single();
+
+                if (error) {
+                  alert(error.message);
+                  return;
+                }
+
+                settasks((prev) =>
+                  [...prev.map((t) => (t.id === data.id ? data : t))].sort(
+                    (a, b) =>
+                      new Date(a.due_date) - new Date(b.due_date)
+                  )
+                );
+              }}
+            >
+              {task.status.replace("_", " ")}
+            </button>
           </div>
+        </div>
 
-          <div className="tasks-flow">
-            {tasks.map((task, index) => (
-              <div key={task.id} className="task-flow-item">
-                <div
-  className={`task-card priority-${task.priority}`}
-  onClick={() => {
-    setSelectedTaskInfo(task);
-    setShowTaskInfoModal(true);
-  }}
->
+        <div className="task-footer">
+          <span className="due-date">
+            📅{" "}
+            {task.due_date
+              ? new Date(task.due_date).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "No due date"}
+          </span>
 
-                  <div className="task-header">
-  <h3>{task.title}</h3>
+          <div className="task-actions-inline">
+            <button
+              className="edit-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingTask(task);
+                setEditTitle(task.title);
+                setEditDueDate(task.due_date ?? "");
+                setEditPriority(task.priority);
+                setShowEditModal(true);
+              }}
+            >
+              ✏️ Edit
+            </button>
 
-  <div className="badges">
-    <span className={`priority-badge p${task.priority}`}>
-      P{task.priority}
-    </span>
+            <button
+              className="delete-btn"
+              onClick={async (e) => {
+                e.stopPropagation();
+                const confirmed = confirm("Delete this task?");
+                if (!confirmed) return;
 
-    <button
-  className={`status-badge ${task.status}`}
- onClick={async (e) => {
-  e.stopPropagation();
+                const { error } = await supabase
+                  .from("tasks")
+                  .delete()
+                  .eq("id", task.id);
 
-    const nextStatus = getNextStatus(task.status);
+                if (error) {
+                  alert(error.message);
+                  return;
+                }
 
-    // ❌ Block finishing if dependencies not done
-    if (
-      nextStatus === "done" &&
-      hasUnfinishedDependencies(task.id)
-    ) {
-      alert(
-        "This task depends on other tasks that are not done yet."
-      );
-      return;
-    }
+                settasks((prev) =>
+                  prev.filter((t) => t.id !== task.id)
+                );
+              }}
+            >
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+      </div>
 
-    const { data, error } = await supabase
-      .from("tasks")
-      .update({ status: nextStatus })
-      .eq("id", task.id)
-      .select()
-      .single();
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    // 🔄 Update UI + keep sorting
-    settasks((prev) =>
-      [...prev.map((t) => (t.id === data.id ? data : t))].sort(
-        (a, b) => new Date(a.due_date) - new Date(b.due_date)
-      )
-    );
-  }}
->
-  {task.status.replace("_", " ")}
-</button>
-
-  </div>
+      {index !== tasks.length - 1 && (
+        <div className="task-arrow">⬇</div>
+      )}
+    </div>
+  ))}
 </div>
 
+  </>
+)}
 
-                  <div className="task-footer">
-                    <span className="due-date">
-                      📅{" "}
-                      {task.due_date
-                        ? new Date(task.due_date).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "No due date"}
-                    </span>
 
-                    {/* ✅ EDIT & DELETE ARE BACK */}
-                    <div className="task-actions-inline">
-                      <button
-                        className="edit-btn"
-                        onClick={(e) => {
-                             e.stopPropagation();
-                          setEditingTask(task);
-                          setEditTitle(task.title);
-                          setEditDueDate(task.due_date ?? "");
-                          setEditPriority(task.priority);
-                          setShowEditModal(true);
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
+</main>
 
-                      <button
-                        className="delete-btn"
-                        onClick={async (e) => {
-                         e.stopPropagation();
-                          const confirmed = confirm("Delete this task?");
-                          if (!confirmed) return;
-
-                          const { error } = await supabase
-                            .from("tasks")
-                            .delete()
-                            .eq("id", task.id);
-
-                          if (error) {
-                            alert(error.message);
-                            return;
-                          }
-
-                          settasks((prev) =>
-                            prev.filter((t) => t.id !== task.id)
-                          );
-                        }}
-                      >
-                        🗑 Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {index !== tasks.length - 1 && (
-                  <div className="task-arrow">⬇</div>
-                )}
-              </div>
-            ))}
-          </div>
-        </main>
       </div>
       {/* ================= CREATE PROJECT MODAL ================= */}
 {showModal && (
@@ -1015,16 +1097,16 @@ const { data: projectsData } = await supabase
 setProjects(projectsData ?? []);
 
 
-                  alert("🔄 Moodle synced successfully!");
+                 toast.success("Moodle connected & synced!");
                   setShowMoodleModal(false);
                 } catch (err) {
-                  alert(err.message ?? "Failed to sync Moodle");
+                  toast.error("Failed to sync Moodle");
                 } finally {
                   setConnectingMoodle(false);
                 }
               }}
             >
-              🔄 Sync Now
+              {connectingMoodle ? "Syncing…" : "🔄 Sync Now"}
             </button>
 
             <button
