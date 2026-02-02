@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [showMoodleModal, setShowMoodleModal] = useState(false);
 const [moodleToken, setMoodleToken] = useState("");
 const [connectingMoodle, setConnectingMoodle] = useState(false);
+
 useEffect(() => {
   document.body.style.overflow = showMoodleModal ? "hidden" : "auto";
 }, [showMoodleModal]);
@@ -200,21 +201,26 @@ const handleRemoveDependency = async (dependencyId) => {
   const [editDueDate, setEditDueDate] = useState("");
   const [editPriority, setEditPriority] = useState(2);
   const [updating, setUpdating] = useState(false);
-  useEffect(() => {
-  if (!user) return;
+ const checkMoodleConnection = async (uid) => {
+  if (!uid) return;
 
-  const checkMoodleConnection = async () => {
-    const { data } = await supabase
-      .from("moodle_connections")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
+  const { data, error } = await supabase
+    .from("moodle_connections")
+    .select("user_id")
+    .eq("user_id", uid)
+    .maybeSingle();
 
-    setHasMoodleConnection(!!data);
-  };
+  if (error) {
+    console.error("Moodle check failed", error);
+    setHasMoodleConnection(false);
+    return;
+  }
 
-  checkMoodleConnection();
-}, [user]);
+  setHasMoodleConnection(!!data);
+};
+
+
+
 
 
   // 🔹 EFFECT 1: get user
@@ -235,6 +241,12 @@ const handleRemoveDependency = async (dependencyId) => {
 
     getUser();
   }, [router]);
+  // 🔹 EFFECT: check Moodle connection once user is known
+useEffect(() => {
+  if (!user) return;
+  checkMoodleConnection(user.id);
+}, [user]);
+
 
   // 🔹 EFFECT 2: load projects
   useEffect(() => {
@@ -318,7 +330,7 @@ const handleRemoveDependency = async (dependencyId) => {
 }}
 
     >
-      🔗 Connect Moodle
+     {hasMoodleConnection ? "🔄 Sync Moodle" : "🔗 Connect Moodle"}
     </button>
 
     <button
@@ -987,10 +999,21 @@ const handleRemoveDependency = async (dependencyId) => {
                 try {
                   setConnectingMoodle(true);
 
-                  const { error } =
-                    await supabase.functions.invoke("sync-moodle");
+                  
+                    const { error } = await supabase.functions.invoke("sync-moodle");
 
-                  if (error) throw error;
+if (error) throw error;
+
+
+                  
+                  // 🔄 Refresh projects after sync
+const { data: projectsData } = await supabase
+  .from("projects")
+  .select("*")
+  .eq("user_id", user.id);
+
+setProjects(projectsData ?? []);
+
 
                   alert("🔄 Moodle synced successfully!");
                   setShowMoodleModal(false);
@@ -1059,19 +1082,38 @@ const handleRemoveDependency = async (dependencyId) => {
               onClick={async () => {
                 try {
                   setConnectingMoodle(true);
+                  
 
-                  const { error: connectError } =
-                    await supabase.functions.invoke(
-                      "connect-moodle",
-                      { body: { token: moodleToken } }
-                    );
+                 const { error: connectError } =
+  await supabase.functions.invoke(
+    "connect-moodle",
+    {
+      body: { token: moodleToken },
+    }
+  );
 
-                  if (connectError) throw connectError;
+if (connectError) throw connectError;
+setHasMoodleConnection(true);
 
-                  const { error: syncError } =
-                    await supabase.functions.invoke("sync-moodle");
+                  
 
-                  if (syncError) throw syncError;
+                 const { error: syncError } =
+  await supabase.functions.invoke("sync-moodle");
+
+if (syncError) throw syncError;
+
+
+                 
+                  // 🔄 Refresh projects after sync
+const { data: projectsData, error: projectsError } = await supabase
+  .from("projects")
+  .select("*")
+  .eq("user_id", user.id);
+
+if (!projectsError) {
+  setProjects(projectsData ?? []);
+}
+
 
                   setHasMoodleConnection(true);
 

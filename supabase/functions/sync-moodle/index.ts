@@ -13,10 +13,10 @@ function getCurrentTerm() {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  if (month >= 9 || month === 1) {
-    return { season: "Fall", year: month === 1 ? year - 1 : year };
+  if (month >= 9 || month === 2) {
+    return { season: "Fall", year: month === 2 ? year - 1 : year };
   }
-  if (month >= 2 && month <= 6) {
+  if (month >= 3 && month <= 6) {
     return { season: "Spring", year };
   }
   return { season: "Summer", year };
