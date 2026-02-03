@@ -24,6 +24,13 @@ export default function Dashboard() {
   const [showMoodleModal, setShowMoodleModal] = useState(false);
 const [moodleToken, setMoodleToken] = useState("");
 const [connectingMoodle, setConnectingMoodle] = useState(false);
+const sortTasksByDueDate = (tasks) =>
+  [...tasks].sort(
+    (a, b) =>
+      new Date(a.due_date ?? "9999-12-31") -
+      new Date(b.due_date ?? "9999-12-31")
+  );
+
 
 useEffect(() => {
   document.body.style.overflow = showMoodleModal ? "hidden" : "auto";
@@ -349,7 +356,8 @@ useEffect(() => {
         return;
       }
 
-      settasks(data);
+     settasks(sortTasksByDueDate(data));
+
     };
 
     loadtasks();
@@ -604,11 +612,11 @@ useEffect(() => {
                 }
 
                 settasks((prev) =>
-                  [...prev.map((t) => (t.id === data.id ? data : t))].sort(
-                    (a, b) =>
-                      new Date(a.due_date) - new Date(b.due_date)
-                  )
-                );
+  sortTasksByDueDate(
+    prev.map((t) => (t.id === data.id ? data : t))
+  )
+);
+
               }}
             >
               {task.status.replace("_", " ")}
@@ -812,7 +820,8 @@ useEffect(() => {
               return;
             }
 
-            settasks((prev) => [...prev, data]);
+           settasks((prev) => sortTasksByDueDate([...prev, data]));
+
             setShowTaskModal(false);
             setNewTaskTitle("");
             setNewTaskDueDate("");
