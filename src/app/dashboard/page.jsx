@@ -797,36 +797,41 @@ useEffect(() => {
           className="create"
           disabled={!newTaskTitle || !newTaskDueDate || creatingTask}
           onClick={async () => {
-            setCreatingTask(true);
+  setCreatingTask(true);
 
-            const { data, error } = await supabase
-              .from("tasks")
-              .insert({
-  title: newTaskTitle,
-  due_date: newTaskDueDate,
-  priority: newTaskPriority,
-  status: "todo",
-  project_id: selectedProjectId,
-  user_id: user.id,
-})
+  const { error } = await supabase
+    .from("tasks")
+    .insert({
+      title: newTaskTitle,
+      due_date: newTaskDueDate,
+      priority: newTaskPriority,
+      status: "todo",
+      project_id: selectedProjectId,
+      user_id: user.id,
+    });
 
-              .select()
-              .single();
+  setCreatingTask(false);
 
-            setCreatingTask(false);
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
-            if (error) {
-              alert(error.message);
-              return;
-            }
+  const { data: refreshed } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("project_id", selectedProjectId)
+    .eq("user_id", user.id)
+    .order("due_date", { ascending: true });
 
-           settasks((prev) => sortTasksByDueDate([...prev, data]));
+  settasks(refreshed ?? []);
 
-            setShowTaskModal(false);
-            setNewTaskTitle("");
-            setNewTaskDueDate("");
-            setNewTaskPriority(2);
-          }}
+  setShowTaskModal(false);
+  setNewTaskTitle("");
+  setNewTaskDueDate("");
+  setNewTaskPriority(2);
+}}
+
         >
           {creatingTask ? "Creating..." : "Create Task"}
         </button>
