@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🚀 TaskFlow
 
-## Getting Started
+TaskFlow is a modern task and project management platform built with **Next.js** and **Supabase**, designed to help students and developers organize their work, visualize task dependencies, and sync assignments directly from **Moodle**.
 
-First, run the development server:
+> Organize. Sync. Flow.
 
-```bash
+---
+
+## ✨ Features
+
+- ✅ User authentication (login & signup)
+- 👤 User profiles with usernames
+- 📁 Project-based task management
+- 🧠 Task dependency graph (cycle-safe)
+- 🔄 Moodle integration (courses & assignments sync)
+- 🔐 Encrypted Moodle token storage
+- 🟠 Visual distinction for Moodle-synced projects
+- ⚡ Real-time UI updates
+- 📱 Responsive, modern UI
+
+---
+
+## 🧱 Tech Stack
+
+- **Frontend:** Next.js (App Router)
+- **Backend:** Supabase (Auth, Database, Edge Functions)
+- **Database:** PostgreSQL
+- **Styling:** CSS Modules / Custom styles
+- **Auth:** Supabase Auth
+- **Security:** AES-256-GCM token encryption
+- **Deployment:** Vercel (recommended)
+
+---
+
+## 📂 Project Structure
+
+```txt
+taskflow/
+├─ app/
+│  ├─ dashboard/        # Main app UI
+│  ├─ login/            # Login page
+│  ├─ signup/           # Signup page
+│  ├─ security/         # Security & token explanation
+│  ├─ layout.js         # Root layout
+│  └─ page.jsx          # Entry redirect logic
+│
+├─ lib/
+│  └─ supabase/         # Supabase client setup
+│
+├─ public/
+│  ├─ favicon.png
+│  └─ assets/
+│
+├─ supabase/
+│  └─ functions/
+│     ├─ connect-moodle/
+│     ├─ sync-moodle/
+│     └─ _shared/
+│        └─ crypto.ts   # Encryption utilities
+│
+├─ package.json
+└─ README.md
+🛠 Getting Started
+1️⃣ Install dependencies
+npm install
+2️⃣ Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Open:
+👉 http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🔐 Environment Variables
+Create a .env.local file:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+Supabase Edge Function Secrets:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+MOODLE_TOKEN_SECRET=your_strong_secret
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+🔄 Moodle Integration
+Log in to Moodle
 
-## Learn More
+Click your profile (top-right)
 
-To learn more about Next.js, take a look at the following resources:
+Go to Preferences
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open Security keys
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Copy Moodle mobile web service
 
-## Deploy on Vercel
+Paste it into TaskFlow → Connect Moodle
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+🔒 Tokens are encrypted and can be refreshed anytime from Moodle.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+🧠 Task Dependencies
+Declare dependencies between tasks
+
+Automatic cycle detection
+
+Visual dependency graph
+
+Tasks can’t be completed before prerequisites
+
+🚀 Deployment
+Recommended deployment via Vercel:
+
+vercel
+Or follow:
+👉 https://nextjs.org/docs/app/building-your-application/deploying
+
+🧑‍💻 Author
+Built with focus, frustration, and flow 💥
+by Adham
