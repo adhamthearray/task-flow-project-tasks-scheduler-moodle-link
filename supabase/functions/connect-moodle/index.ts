@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encrypt } from "../_shared/crypto.ts";
+import { decrypt } from "../_shared/crypto.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,12 +78,16 @@ serve(async (req) => {
     }
 
     // 💾 Save token
-    const { error: dbError } = await supabase
-      .from("moodle_connections")
-      .upsert({
-        user_id: user.id,
-        token,
-      });
+    const encryptedToken = await encrypt(token);
+
+
+const { error: dbError } = await supabase
+  .from("moodle_connections")
+  .upsert({
+    user_id: user.id,
+    token: encryptedToken,
+  });
+
 
     if (dbError) throw dbError;
 

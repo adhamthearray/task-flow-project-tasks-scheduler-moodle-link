@@ -916,3 +916,40 @@ body {
 .moodle-context {
   box-shadow: inset 4px 0 0 #ff8c00;
 }
+.project-delete-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.project-delete-btn:hover {
+  color: #e53935;
+}
+
+.sidebar li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-delete-btn.danger {
+  background: transparent;
+  border: 1px solid #e53935;
+  color: #e53935;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.project-delete-btn.danger:hover {
+  background: #e53935;
+  color: white;
+}

@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decrypt } from "../_shared/crypto.ts";
+
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,10 +16,10 @@ function getCurrentTerm() {
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  if (month >= 9 || month === 2) {
-    return { season: "Fall", year: month === 2 ? year - 1 : year };
+  if (month >= 9 || month === 1) {
+    return { season: "Fall", year: month === 1 ? year - 1 : year };
   }
-  if (month >= 3 && month <= 6) {
+  if (month >= 2 && month <= 6) {
     return { season: "Spring", year };
   }
   return { season: "Summer", year };
@@ -66,7 +69,9 @@ serve(async (req) => {
       });
     }
 
-    const token = conn.token;
+    const encryptedToken = conn.token;
+const token = await decrypt(encryptedToken);
+
 
     // 🔎 Resolve Moodle user id
     const siteRes = await fetch(

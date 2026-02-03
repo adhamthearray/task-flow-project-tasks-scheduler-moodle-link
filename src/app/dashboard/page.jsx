@@ -61,6 +61,30 @@ const selectedProject = projects.find(
 const [selectedTaskInfo, setSelectedTaskInfo] = useState(null);
 const [hasMoodleConnection, setHasMoodleConnection] = useState(false);
 const [replaceTokenMode, setReplaceTokenMode] = useState(false);
+const [profile, setProfile] = useState(null);
+const [username, setUsername] = useState(null);
+useEffect(() => {
+  if (!user?.id) return;
+
+  const loadUsername = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Failed to load username", error);
+      setUsername(null);
+      return;
+    }
+
+    setUsername(data.username);
+  };
+
+  loadUsername();
+}, [user]);
+
 
 const STATUS_FLOW = ["todo","done"];
 const getNextStatus = (current) => {
@@ -197,6 +221,38 @@ const handleRemoveDependency = async (dependencyId) => {
     alert("Failed to remove dependency 😬");
   }
 };
+const handleDeleteProject = async (projectId) => {
+  const confirmed = confirm(
+  `⚠️ Delete project?\n\n` +
+  `• All tasks will be removed\n` +
+  `• All dependencies will be removed\n` +
+  `• This cannot be undone\n`
+);
+
+  if (!confirmed) return;
+
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", projectId);
+
+  if (error) {
+    toast.error("Failed to delete project");
+    return;
+  }
+
+  // 🔄 Update UI
+  setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+  if (selectedProjectId === projectId) {
+    setSelectedProjectId(null);
+    settasks([]);
+    setDependencies([]);
+  }
+
+  toast.success("Project deleted");
+};
+
 
 
 
@@ -251,6 +307,8 @@ useEffect(() => {
   if (!user) return;
   checkMoodleConnection(user.id);
 }, [user]);
+
+
 
 
   // 🔹 EFFECT 2: load projects
@@ -370,7 +428,7 @@ useEffect(() => {
     </li>
   ) : (
     projects.map((project) => (
-      <li
+     <li
   key={project.id}
   onClick={() => setSelectedProjectId(project.id)}
   className={`
@@ -378,11 +436,23 @@ useEffect(() => {
     ${project.source === "MOODLE" ? "moodle-project" : ""}
   `}
 >
-  {project.name}
-  {project.source === "MOODLE" && (
-    <span className="moodle-tag">Moodle</span>
-  )}
+  <span className="project-name">
+    {project.name}
+   
+  </span>
+
+  <button
+  className="project-delete-btn danger"
+  onClick={(e) => {
+    e.stopPropagation();
+    handleDeleteProject(project.id);
+  }}
+>
+  Delete
+</button>
+
 </li>
+
 
     ))
   )}
@@ -404,7 +474,9 @@ useEffect(() => {
   {/* 🟠 CASE 1: No projects at all */}
   {projects.length === 0 && (
     <div className="empty-main hero">
-      <h2>Welcome to TaskFlow 👋</h2>
+      <h2>
+  Welcome back{username ? `, ${username}` : ""} 👋
+</h2>
       <p>
         Your workspace is empty right now.<br />
         Create your first project to get started.
@@ -422,7 +494,9 @@ useEffect(() => {
   {/* 🟠 CASE 2: Projects exist but none selected */}
   {projects.length > 0 && !selectedProjectId && (
     <div className="empty-main">
-      <h2>Select a project</h2>
+      <h2>
+  Welcome back{username ? `, ${username}` : ""} 👋
+</h2>
       <p>
         Choose a project from the sidebar to view its tasks.
       </p>
@@ -432,7 +506,9 @@ useEffect(() => {
   {/* 🟠 CASE 3: Project selected but no tasks */}
   {selectedProjectId && tasks.length === 0 && (
     <div className="empty-main">
-      <h2>No tasks yet</h2>
+      <h2>
+  Welcome back{username ? `, ${username}` : ""} 👋
+</h2>
       <p>
         
         Add your first task to bring it to life ✨
@@ -450,8 +526,11 @@ useEffect(() => {
   {/* 🟢 CASE 4: Normal content */}
   {selectedProjectId && tasks.length > 0 && (
   <>
-    <h2>Welcome back 👋</h2>
-    <p className="email">{user.email}</p>
+  <h2>
+  Welcome back{username ? `, ${username}` : ""} 👋
+</h2>
+
+
 
     <div className="task-actions">
       <button
@@ -506,7 +585,7 @@ useEffect(() => {
                   nextStatus === "done" &&
                   hasUnfinishedDependencies(task.id)
                 ) {
-                  alert(
+                  toast.error(
                     "This task depends on other tasks that are not done yet."
                   );
                   return;
@@ -749,8 +828,14 @@ useEffect(() => {
 
 {/* ================= DEPENDENCY MODAL ================= */}
 {showDependencyModal && (
-  <div className="modal-overlay">
-    <div className="modal">
+  <div
+    className="modal-overlay"
+    onClick={() => setShowDependencyModal(false)}
+  >
+    <div
+      className="modal"
+      onClick={(e) => e.stopPropagation()}
+    >
       <h2>Declare Dependency</h2>
 
       <div className="dependency-row">
@@ -789,57 +874,54 @@ useEffect(() => {
 
       <div className="modal-actions">
         <button
-  className="create"
-  disabled={
-    !fromTaskId ||
-    !toTaskId ||
-    fromTaskId === toTaskId ||
-    creatingDependency
-  }
-  onClick={async () => {
-    // 🚫 CYCLE DETECTION
-    if (
-      createsCycle(dependencies, fromTaskId, toTaskId)
-    ) {
-      alert(
-        "🚨 Invalid dependency: this creates a cycle.\nTasks would block each other forever."
-      );
-      return;
-    }
+          className="create"
+          disabled={
+            !fromTaskId ||
+            !toTaskId ||
+            fromTaskId === toTaskId ||
+            creatingDependency
+          }
+          onClick={async () => {
+            if (createsCycle(dependencies, fromTaskId, toTaskId)) {
+              toast.error(
+                "🚨 Invalid dependency: this creates a cycle."
+              );
+              return;
+            }
 
-    setCreatingDependency(true);
+            setCreatingDependency(true);
 
-    const { data, error } = await supabase
-      .from("task_dependencies")
-      .insert({
-        user_id: user.id,
-        project_id: selectedProjectId,
-        from_task_id: fromTaskId,
-        to_task_id: toTaskId,
-      })
-      .select()
-      .single();
+            const { data, error } = await supabase
+              .from("task_dependencies")
+              .insert({
+                user_id: user.id,
+                project_id: selectedProjectId,
+                from_task_id: fromTaskId,
+                to_task_id: toTaskId,
+              })
+              .select()
+              .single();
 
-    setCreatingDependency(false);
+            setCreatingDependency(false);
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+            if (error) {
+              toast.error(error.message);
+              return;
+            }
 
-    setDependencies((prev) => [...prev, data]);
-    setShowDependencyModal(false);
-    setFromTaskId("");
-    setToTaskId("");
-  }}
->
-  {creatingDependency ? "Creating..." : "Create Dependency"}
-</button>
-
+            setDependencies((prev) => [...prev, data]);
+            setShowDependencyModal(false);
+            setFromTaskId("");
+            setToTaskId("");
+          }}
+        >
+          {creatingDependency ? "Creating..." : "Create Dependency"}
+        </button>
       </div>
     </div>
   </div>
 )}
+
 
 {/* ================= EDIT TASK MODAL ================= */}
 {showEditModal && editingTask && (
@@ -1142,9 +1224,26 @@ setProjects(projectsData ?? []);
             onChange={(e) => setMoodleToken(e.target.value)}
           />
 
-          <p className="trust">
-            🔐 Your token is encrypted, stored securely, and never shared.
-          </p>
+         <p className="trust">
+  🔐 Your token is encrypted, stored securely, and never shared.
+</p>
+
+<a
+  href="/security"
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{
+    fontSize: "13px",
+    color: "#000000",
+    textDecoration: "underline",
+    marginTop: "6px",
+    display: "inline-block",
+  }}
+>
+  How to get your token & how we keep it secure →
+</a>
+
+          
 
           <div className="moodle-modal-actions">
             <button
@@ -1199,13 +1298,13 @@ if (!projectsError) {
 
                   setHasMoodleConnection(true);
 
-                  alert("✅ Moodle connected & synced!");
+                  toast.success("✅ Moodle connected & synced!");
                   setShowMoodleModal(false);
                   setReplaceTokenMode(false);
                   setMoodleToken("");
 
                 } catch (err) {
-                  alert(err.message ?? "Failed to connect Moodle");
+                  toast.error(err.message ?? "Failed to connect Moodle");
                 } finally {
                   setConnectingMoodle(false);
                 }

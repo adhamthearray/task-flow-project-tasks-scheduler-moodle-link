@@ -10,6 +10,7 @@ export default function SignupPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,22 +18,30 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
 
-    const { data,error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    console.log(data);
+    // 1️⃣ Create auth user
+   const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      username, // 👈 goes into raw_user_meta_data
+    },
+  },
+});
 
-    
-
-    setLoading(false);
 
     if (error) {
       setError(error.message);
+      setLoading(false);
       return;
     }
 
-    // after signup → send to login
+    // 2️⃣ Create profile row
+    
+    setLoading(false);
+
+   
+
     router.push("/login");
   };
 
@@ -44,6 +53,16 @@ export default function SignupPage() {
 
         {error && <p className="signup-error">{error}</p>}
 
+        {/* 👤 USERNAME */}
+        <input
+          className="signup-input"
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+
+        {/* 📧 EMAIL */}
         <input
           className="signup-input"
           type="email"
@@ -52,6 +71,7 @@ export default function SignupPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
+        {/* 🔐 PASSWORD */}
         <input
           className="signup-input"
           type="password"
@@ -63,7 +83,7 @@ export default function SignupPage() {
         <button
           className="signup-button"
           onClick={handleSignup}
-          disabled={loading}
+          disabled={loading || !email || !password || !username}
         >
           {loading ? "Creating account..." : "Sign Up"}
         </button>
