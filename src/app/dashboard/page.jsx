@@ -175,6 +175,7 @@ const hasUnfinishedDependencies = (taskId) => {
     return prerequisiteTask && prerequisiteTask.status !== "done";
   });
 };
+
 const buildGraph = (dependencies) => {
   const graph = {};
 
