@@ -163,14 +163,14 @@ const buildDependencyGraphView = () => {
 const hasUnfinishedDependencies = (taskId) => {
   // Tasks that THIS task depends on
   const deps = dependencies.filter(
-    (d) => d.from_task_id === taskId
+    (d) => d.to_task_id === taskId
   );
 
   if (deps.length === 0) return false;
 
   return deps.some((dep) => {
     const prerequisiteTask = tasks.find(
-      (t) => t.id === dep.to_task_id
+      (t) => t.id === dep.from_task_id
     );
     return prerequisiteTask && prerequisiteTask.status !== "done";
   });
